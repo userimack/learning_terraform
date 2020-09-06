@@ -7,4 +7,5 @@ variable "user_names" {
 variable "give_neo_cloudwatch_full_access" {
   description = "If true, neo gets full access to Cloudwatch"
   type        = bool
+  default     = false
 }

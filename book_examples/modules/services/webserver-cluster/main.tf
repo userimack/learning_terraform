@@ -5,15 +5,11 @@ provider "aws" {
 
 
 resource "aws_launch_configuration" "alc_example" {
-  image_id        = "ami-0c55b159cbfafe1f0"
+  image_id        = var.ami
   instance_type   = var.instance_type
   security_groups = [aws_security_group.instance_sg.id]
 
-  user_data = (
-    length(data.template_file.user_data[*]) > 0
-    ? data.template_file.user_data[0].rendered
-    : data.template_file.user_data_new[0].rendered
-  )
+  user_data = data.template_file.user_data.rendered
 
   lifecycle {
     create_before_destroy = true
@@ -21,6 +17,10 @@ resource "aws_launch_configuration" "alc_example" {
 }
 
 resource "aws_autoscaling_group" "asg_example" {
+  # Explicitly depend on the launch configuration's name so each time it's
+  # replaced, this ASG is also replaced
+  name = "${var.cluster_name}-${aws_launch_configuration.alc_example.name}"
+
   launch_configuration = aws_launch_configuration.alc_example.name
   vpc_zone_identifier  = data.aws_subnet_ids.default.ids
 
@@ -29,6 +29,15 @@ resource "aws_autoscaling_group" "asg_example" {
 
   min_size = var.min_size
   max_size = var.max_size
+
+  # Wait for at least this many instances to pass health checks before
+  # considering the ASG deployment complete
+  min_elb_capacity = var.min_size
+
+  # when replacing this ASG, create the replacement first, and then only delete the original
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tag {
     key                 = "Name"
@@ -164,24 +173,13 @@ data "terraform_remote_state" "db" {
 }
 
 data "template_file" "user_data" {
-  count = var.enable_new_user_data ? 0 : 1
-
   template = file("${path.module}/user-data.sh")
 
   vars = {
     server_port = var.server_port
     db_address  = data.terraform_remote_state.db.outputs.address
     db_port     = data.terraform_remote_state.db.outputs.port
-  }
-}
-
-data "template_file" "user_data_new" {
-  count = var.enable_new_user_data ? 1 : 0
-
-  template = file("${path.module}/user-data-new.sh")
-
-  vars = {
-    server_port = var.server_port
+    server_text = var.server_text
   }
 }
 
@@ -203,7 +201,7 @@ resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
   desired_capacity      = 3
   recurrence            = "0 9 * * *"
 
-  autoscaling_group_name = module.webserver_cluster.asg_name
+  autoscaling_group_name = aws_autoscaling_group.asg_example.name
 }
 
 resource "aws_autoscaling_schedule" "scale_in_at_night" {
@@ -215,7 +213,7 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
   desired_capacity      = 1
   recurrence            = "0 17 * * *"
 
-  autoscaling_group_name = module.webserver_cluster.asg_name
+  autoscaling_group_name = aws_autoscaling_group.asg_example.name
 }
 
 
@@ -230,10 +228,10 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
     AutoScalingGroupName = aws_autoscaling_group.asg_example.name
   }
 
-  comparision_operator = "LessThanThreshold"
-  evaluation_periods   = 1
-  period               = 300
-  statistic            = "Minimum"
-  threshold            = 10
-  unit                 = "Count"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  statistic           = "Minimum"
+  threshold           = 10
+  unit                = "Count"
 }
