@@ -171,3 +171,48 @@ locals {
   tcp_protocol = "tcp"
   all_ips      = "0.0.0.0/0"
 }
+
+
+resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
+  count = var.enable_autoscaling ? 1 : 0
+
+  scheduled_action_name = "scale_out_during_business_hours"
+  min_size              = 2
+  max_size              = 4
+  desired_capacity      = 3
+  recurrence            = "0 9 * * *"
+
+  autoscaling_group_name = module.webserver_cluster.asg_name
+}
+
+resource "aws_autoscaling_schedule" "scale_in_at_night" {
+  count = var.enable_autoscaling ? 1 : 0
+
+  scheduled_action_name = "scale_in_at_name"
+  min_size              = 1
+  max_size              = 4
+  desired_capacity      = 1
+  recurrence            = "0 17 * * *"
+
+  autoscaling_group_name = module.webserver_cluster.asg_name
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
+  count = format("%.1s", var.instance_type) == "t" ? 1 : 0
+
+  alarm_name  = "${var.cluster_name}-low-cpu-credit-balance"
+  namespace   = "AWS/EC2"
+  metric_name = "CPUCreditBalance"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.asg_example.name
+  }
+
+  comparision_operator = "LessThanThreshold"
+  evaluation_periods   = 1
+  period               = 300
+  statistic            = "Minimum"
+  threshold            = 10
+  unit                 = "Count"
+}
