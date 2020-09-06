@@ -46,3 +46,14 @@ variable "enable_autoscaling" {
   description = "If set to true, enable auto scaling"
   type        = bool
 }
+
+variable "enable_new_user_data" {
+  description = "If set to true, use new user data script"
+  type        = bool
+  default     = false
+}
+
+variable "name" {
+  description = "A name to render"
+  type        = string
+}
