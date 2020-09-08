@@ -1,13 +1,17 @@
 terraform {
+  required_version = ">= 0.13, < 0.14"
   backend "s3" {
     key = "prod/services/webserver-cluster/terraform.tfstate"
   }
 }
 
 provider "aws" {
-  region  = "us-east-2"
+  region = "us-east-2"
+
+  # Allow any 3.x version of the AWS provider
   version = "~> 3.3"
 }
+
 
 module "webserver_cluster" {
   # source = "git::https://github.com/userimack/learning_terraform.git//book_examples/modules/services/webserver-cluster?ref = v0.1.1"

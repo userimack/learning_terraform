@@ -5,5 +5,5 @@ output "address" {
 
 output "port" {
   value       = module.mysql.port
-  description = "The port the database is listening on."
+  description = "The port the database is listening on"
 }

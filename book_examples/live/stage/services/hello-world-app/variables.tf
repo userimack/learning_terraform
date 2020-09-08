@@ -3,8 +3,13 @@
 # You must provide a value for each of these parameters.
 # ---------------------------------------------------------------------------------------------------------------------
 
-variable "db_password" {
-  description = "The password for the database"
+variable "db_remote_state_bucket" {
+  description = "The name of the S3 bucket for the database's remote state"
+  type        = string
+}
+
+variable "db_remote_state_key" {
+  description = "The path for the database's remote state in S3"
   type        = string
 }
 
@@ -13,14 +18,14 @@ variable "db_password" {
 # These parameters have reasonable defaults.
 # ---------------------------------------------------------------------------------------------------------------------
 
-variable "db_name" {
-  description = "The name to use for the database"
+variable "server_text" {
+  description = "The text the web server should return"
+  default     = "Hello, World"
   type        = string
-  default     = "example_database_stage"
 }
 
-variable "db_username" {
-  description = "The username for the database"
+variable "environment" {
+  description = "The name of the environment we're deploying to"
   type        = string
-  default     = "admin"
+  default     = "stage"
 }
