@@ -1,3 +1,8 @@
+# ---------------------------------------------------------------------------------------------------------------------
+# REQUIRED PARAMETERS
+# You must provide a value for each of these parameters.
+# ---------------------------------------------------------------------------------------------------------------------
+
 variable "cluster_name" {
   description = "The name to use for all the cluster resource"
   type        = string
@@ -5,7 +10,6 @@ variable "cluster_name" {
 
 variable "ami" {
   description = "The AMI to run in the cluster"
-  default     = ""
   type        = string
 }
 
@@ -29,6 +33,17 @@ variable "enable_autoscaling" {
   type        = bool
 }
 
+variable "subnet_ids" {
+  description = "The subnet IDs to deploy to"
+  type        = list(string)
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# OPTIONAL PARAMETERS
+# These parameters have reasonable defaults.
+# ---------------------------------------------------------------------------------------------------------------------
+
+
 variable "custom_tags" {
   description = "Custom tags to set on the Instances in the ASG"
   type        = map(string)
@@ -40,12 +55,6 @@ variable "server_port" {
   type        = number
   default     = 8080
 }
-
-variable "subnet_ids" {
-  description = "The subnet IDs to deploy to"
-  type        = list(string)
-}
-
 
 variable "target_group_arns" {
   description = "The ARNs of ELB target groups in which to register Instances"
@@ -62,7 +71,7 @@ variable "health_check_type" {
 variable "user_data" {
   description = "The User Data script to run in each Instance at boot"
   type        = string
-  default     = ""
+  default     = null
 }
 
 

@@ -2,11 +2,37 @@ terraform {
   required_version = ">= 0.13, < 0.14"
 }
 
+module "asg" {
+  source = "../../cluster/asg-rolling-deploy"
+
+  cluster_name  = "hello-world-${var.environment}"
+  ami           = var.ami
+  user_data     = data.template_file.user_data.rendered
+  instance_type = var.instance_type
+
+  min_size           = var.min_size
+  max_size           = var.max_size
+  enable_autoscaling = var.enable_autoscaling
+
+  subnet_ids        = local.subnet_ids
+  target_group_arns = [aws_lb_target_group.asg.arn]
+  health_check_type = "ELB"
+
+  custom_tags = var.custom_tags
+}
+
+module "alb" {
+  source = "../../networking/alb"
+
+  alb_name   = "hello-world-${var.environment}"
+  subnet_ids = local.subnet_ids
+}
+
 resource "aws_lb_target_group" "asg" {
-  name     = "${var.cluster_name}-instance"
+  name     = "hello-world-${var.environment}"
   port     = var.server_port
   protocol = "HTTP"
-  vpc_id   = data.aws_vpc.default.id
+  vpc_id   = local.vpc_id
 
   health_check {
     path                = "/"
@@ -35,59 +61,16 @@ resource "aws_lb_listener_rule" "asg" {
   }
 }
 
-data "aws_vpc" "default" {
-  default = true
-}
-
-data "aws_subnet_ids" "default" {
-  vpc_id = data.aws_vpc.default.id
-}
-
-data "terraform_remote_state" "db" {
-  backend = "s3"
-
-  config = {
-    bucket = var.db_remote_state_bucket
-    key    = var.db_remote_state_key
-    region = "us-east-2"
-  }
-}
 
 data "template_file" "user_data" {
   template = file("${path.module}/user-data.sh")
 
   vars = {
     server_port = var.server_port
-    db_address  = data.terraform_remote_state.db.outputs.address
-    db_port     = data.terraform_remote_state.db.outputs.port
+    db_address  = local.mysql_config.address
+    db_port     = local.mysql_config.port
     server_text = var.server_text
   }
-}
-
-module "asg" {
-  source = "../../cluster/asg-rolling-deploy"
-
-  cluster_name  = "hello-world-${var.environment}"
-  ami           = var.ami
-  user_data     = data.template_file.user_data.rendered
-  instance_type = var.instance_type
-
-  min_size           = var.min_size
-  max_size           = var.max_size
-  enable_autoscaling = var.enable_autoscaling
-
-  subnet_ids        = data.aws_subnet_ids.default.ids
-  target_group_arn  = [aws_lb_target_group.asg.arn]
-  health_check_type = "ELB"
-
-  custom_tags = var.custom_tags
-}
-
-module "alb" {
-  source = "../../networking/alb"
-
-  alb_name   = "hello-world-${var.environment}"
-  subnet_ids = data.aws_subnet_ids.default.ids
 }
 
 locals {

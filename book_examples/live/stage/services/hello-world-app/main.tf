@@ -1,8 +1,8 @@
 terraform {
   required_version = ">= 0.13, < 0.14"
-  backend "s3" {
-    key = "stage/services/webserver-cluster/terraform.tfstate"
-  }
+  # backend "s3" {
+  #     key = "stage/services/webserver-cluster/terraform.tfstate"
+  #   }
 }
 
 provider "aws" {

@@ -4,14 +4,14 @@ terraform {
 
 provider "aws" {
   region  = "us-east-2"
-    version = "~> 3.3"
+  version = "~> 3.3"
 }
 
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "terraform-up-and-running-mahendra"
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 
   # Enable versioning so we can see the full revision history of our state files

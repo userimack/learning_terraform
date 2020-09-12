@@ -5,7 +5,7 @@ terraform {
 resource "aws_launch_configuration" "alc_example" {
   image_id        = var.ami
   instance_type   = var.instance_type
-  security_groups = [aws_security_group.instance_sg.id]
+  security_groups = [aws_security_group.instance.id]
 
   user_data = var.user_data
 
@@ -15,7 +15,6 @@ resource "aws_launch_configuration" "alc_example" {
     create_before_destroy = true
   }
 }
-
 
 resource "aws_autoscaling_group" "asg_example" {
   # Explicitly depend on the launch configuration's name so each time it's
@@ -61,26 +60,13 @@ resource "aws_autoscaling_group" "asg_example" {
   }
 }
 
-
-resource "aws_security_group" "instance_sg" {
-  name = "terraform-example-instance"
-
-  ingress {
-    from_port   = var.server_port
-    to_port     = var.server_port
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-
 resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
   count = var.enable_autoscaling ? 1 : 0
 
-  scheduled_action_name = "scale_out_during_business_hours"
+  scheduled_action_name = "${var.cluster_name}-scale_out_during_business_hours"
   min_size              = 2
   max_size              = 4
-  desired_capacity      = 3
+  desired_capacity      = 2
   recurrence            = "0 9 * * *"
 
   autoscaling_group_name = aws_autoscaling_group.asg_example.name
@@ -89,7 +75,7 @@ resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
 resource "aws_autoscaling_schedule" "scale_in_at_night" {
   count = var.enable_autoscaling ? 1 : 0
 
-  scheduled_action_name = "scale_in_at_name"
+  scheduled_action_name = "${var.cluster_name}-scale_in_at_name"
   min_size              = 1
   max_size              = 4
   desired_capacity      = 1
@@ -148,3 +134,7 @@ resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
   unit                = "Count"
 }
 
+locals {
+  tcp_protocol = "tcp"
+  all_ips      = ["0.0.0.0/0"]
+}
